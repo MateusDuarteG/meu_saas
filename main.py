@@ -42,24 +42,18 @@ def criar_admin_inicial():
 criar_admin_inicial()
 
 @app.post("/login")
-def criar_admin_inicial():
-    db = next(get_db())
-    try:
-        admin_existente = db.query(models.UsuarioModel).filter(models.UsuarioModel.email == "mateus@assistencia.com").first()
-        if not admin_existente:
-            novo_admin = models.UsuarioModel(
-                nome="Mateus Duarte",
-                email="mateus@assistencia.com",
-                senha_hash="123456",  # Certifique-se de que a senha digitada no site é exatamente esta
-                perfil="admin",
-                empresa_id=1
-            )
-            db.add(novo_admin)
-            db.commit()
-    except Exception as e:
-        print("Erro ao criar admin:", e)
-    finally:
-        db.close()
+def login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    usuario = db.query(models.UsuarioModel).filter(models.UsuarioModel.email == form_data.username).first()
+    
+    if not usuario or usuario.senha_hash != form_data.password:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="E-mail ou senha incorretos",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Retorna o token de acesso estruturado
+    return {"access_token": usuario.email, "token_type": "bearer"}
 
 @app.post("/os/", status_code=status.HTTP_201_CREATED)
 def criar_ordem_servico(
