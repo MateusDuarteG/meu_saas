@@ -19,6 +19,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+def criar_usuario_admin_padrao():
+    db = next(get_db())
+    admin_existente = db.query(models.UsuarioModel).filter(models.UsuarioModel.email == "mateus@assistencia.com").first()
+    if not admin_existente:
+        novo_admin = models.UsuarioModel(
+            email="mateus@assistencia.com",
+            senha_hash="123456",  # Senha padrão que você usa no login
+            empresa_id=1
+        )
+        db.add(novo_admin)
+        db.commit()
+        
 @app.post("/login")
 def login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     # Busca o usuário pelo e-mail informado no campo 'username' do form
