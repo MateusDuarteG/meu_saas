@@ -135,17 +135,17 @@ def cadastrar_empresa_e_admin(dados: schemas.EmpresaCadastroCreate, db: Session 
         raise HTTPException(status_code=400, detail="Este e-mail já está cadastrado no sistema.")
 
     try:
-        # 2. Cria a nova Empresa com o nome fantasia fornecido
+        # 2. Cria a nova Empresa SEM fixar o ID (o PostgreSQL gera sozinho)
         nova_empresa = models.EmpresaModel(nome_fantasia=dados.nome_fantasia)
         db.add(nova_empresa)
         db.commit()
         db.refresh(nova_empresa)
 
-        # 3. Cria o Usuário Administrador vinculado a essa nova empresa
+        # 3. Cria o Usuário Administrador vinculado ao ID gerado para essa nova empresa
         novo_admin = models.UsuarioModel(
             nome=dados.nome_responsavel,
             email=dados.email,
-            senha_hash=dados.senha,  # Senha direta conforme seu padrão atual
+            senha_hash=dados.senha,
             perfil="admin",
             empresa_id=nova_empresa.id
         )
