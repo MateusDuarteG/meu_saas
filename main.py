@@ -11,6 +11,14 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="SaaS OS & Cobrança API", version="1.0.0")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Libera geral para testes na nuvem sem bloqueio de CORS
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 def criar_admin_inicial():
     db = next(get_db())
     try:
