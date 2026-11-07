@@ -11,28 +11,27 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="SaaS OS & Cobrança API", version="1.0.0")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.on_event("startup")
-def criar_usuario_admin_padrao():
+def criar_admin_inicial():
     db = next(get_db())
-    admin_existente = db.query(models.UsuarioModel).filter(models.UsuarioModel.email == "mateus@assistencia.com").first()
-    if not admin_existente:
-        novo_admin = models.UsuarioModel(
-            nome="Mateus Duarte",
-            email="mateus@assistencia.com",
-            senha_hash="123456",  # Coloque o hash ou senha que sua aplicação utiliza
-            perfil="admin",
-            empresa_id=1
-        )
-        db.add(novo_admin)
-        db.commit()
+    try:
+        admin_existente = db.query(models.UsuarioModel).filter(models.UsuarioModel.email == "mateus@assistencia.com").first()
+        if not admin_existente:
+            novo_admin = models.UsuarioModel(
+                nome="Mateus Duarte",
+                email="mateus@assistencia.com",
+                senha_hash="123456",
+                perfil="admin",
+                empresa_id=1
+            )
+            db.add(novo_admin)
+            db.commit()
+    except Exception as e:
+        print("Erro ao criar admin:", e)
+    finally:
+        db.close()
+
+# Executa a criação do admin ao iniciar
+criar_admin_inicial()
 
 @app.post("/login")
 def login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
