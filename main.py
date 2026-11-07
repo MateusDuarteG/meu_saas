@@ -42,23 +42,24 @@ def criar_admin_inicial():
 criar_admin_inicial()
 
 @app.post("/login")
-def login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    # Busca o usuário pelo e-mail informado no campo 'username' do form
-    usuario = db.query(models.UsuarioModel).filter(models.UsuarioModel.email == form_data.username).first()
-    
-    # Valida se o usuário existe e se a senha confere
-    if not usuario or usuario.senha_hash != form_data.password:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="E-mail ou senha incorretos",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    # Retorna o token de acesso simulado para o MVP
-    return {
-        "access_token": f"jwt-token-valido-para-{usuario.email}",
-        "token_type": "bearer"
-    }
+def criar_admin_inicial():
+    db = next(get_db())
+    try:
+        admin_existente = db.query(models.UsuarioModel).filter(models.UsuarioModel.email == "mateus@assistencia.com").first()
+        if not admin_existente:
+            novo_admin = models.UsuarioModel(
+                nome="Mateus Duarte",
+                email="mateus@assistencia.com",
+                senha_hash="123456",  # Certifique-se de que a senha digitada no site é exatamente esta
+                perfil="admin",
+                empresa_id=1
+            )
+            db.add(novo_admin)
+            db.commit()
+    except Exception as e:
+        print("Erro ao criar admin:", e)
+    finally:
+        db.close()
 
 @app.post("/os/", status_code=status.HTTP_201_CREATED)
 def criar_ordem_servico(
