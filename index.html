@@ -70,8 +70,58 @@
           Acessar Painel
         </button>
       </form>
+
+      <!-- ADICIONE ESTE BLOCO LOGO ABAIXO DO FORMULÁRIO DE LOGIN -->
+      <div class="text-center mt-4">
+        <button onclick="alternarTelaLogin('cadastro')" class="text-xs text-indigo-400 hover:underline">
+          Não tem conta? Cadastre sua assistência
+        </button>
+      </div>
+
     </div>
   </div>
+<!-- ADICIONE O CONTAINER DE CADASTRO LOGO ABAIXO -->
+<div id="cadastro-container" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-8 relative">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+        <i data-lucide="user-plus" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h2 class="text-xl font-bold text-white">Criar Nova Conta</h2>
+        <p class="text-xs text-slate-400">Comece a gerenciar sua assistência técnica</p>
+      </div>
+    </div>
+
+    <form id="form-cadastro" onsubmit="realizarCadastro(event)" class="space-y-4">
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-1">Nome da Assistência / Empresa</label>
+        <input type="text" id="cad-empresa" required placeholder="Ex: Tech Consertos" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-1">Seu Nome</label>
+        <input type="text" id="cad-nome" required placeholder="Ex: Mateus Duarte" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-1">E-mail Profissional</label>
+        <input type="email" id="cad-email" required placeholder="seu@email.com" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-1">Senha</label>
+        <input type="password" id="cad-senha" required placeholder="••••••••" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500" />
+      </div>
+      <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-xl text-sm transition shadow-lg shadow-indigo-600/30">
+        Cadastrar e Testar Grátis
+      </button>
+    </form>
+
+    <div class="text-center mt-4">
+      <button onclick="alternarTelaLogin('login')" class="text-xs text-indigo-400 hover:underline">
+        Já tem uma conta? Faça login
+      </button>
+    </div>
+  </div>
+</div>
 
   <!-- MAIN WRAPPER -->
   <div class="flex h-screen overflow-hidden">
@@ -383,6 +433,50 @@
         carregarDadosAPI();
       }
     };
+
+    function alternarTelaLogin(tipo) {
+    const loginBox = document.getElementById('login-container'); // ID da sua div de login atual
+    const cadastroBox = document.getElementById('cadastro-container');
+    
+    if (tipo === 'cadastro') {
+        loginBox.classList.add('hidden');
+        cadastroBox.classList.remove('hidden');
+    } else {
+        cadastroBox.classList.add('hidden');
+        loginBox.classList.remove('hidden');
+    }
+}
+
+async function realizarCadastro(event) {
+    event.preventDefault();
+    
+    const dados = {
+        nome_fantasia: document.getElementById('cad-empresa').value,
+        nome_responsavel: document.getElementById('cad-nome').value,
+        email: document.getElementById('cad-email').value,
+        senha: document.getElementById('cad-senha').value
+    };
+
+    try {
+        const res = await fetch(`${state.apiUrl}/cadastrar-empresa`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados)
+        });
+
+        const resultado = await res.json();
+
+        if (res.ok) {
+            alert('Conta criada com sucesso! Faça login com seu e-mail e senha.');
+            alternarTelaLogin('login');
+        } else {
+            alert('Erro ao cadastrar: ' + (resultado.detail || 'Verifique os dados'));
+        }
+    } catch (err) {
+        alert('Erro de comunicação com o servidor.');
+        console.error(err);
+    }
+}
 
     function formatarMoeda(valor) {
       return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);

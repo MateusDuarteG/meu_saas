@@ -127,6 +127,36 @@ def criar_ordem_servico(
     db.refresh(nova_os)
     return nova_os
 
+@app.post("/cadastrar-empresa", status_code=status.HTTP_201_CREATED)
+def cadastrar_empresa_e_admin(dados: schemas.EmpresaCadastroCreate, db: Session = Depends(get_db)):
+    # 1. Verifica se o e-mail já está cadastrado
+    usuario_existente = db.query(models.UsuarioModel).filter(models.UsuarioModel.email == dados.email).first()
+    if usuario_existente:
+        raise HTTPException(status_code=400, detail="Este e-mail já está cadastrado no sistema.")
+
+    try:
+        # 2. Cria a nova Empresa com o nome fantasia fornecido
+        nova_empresa = models.EmpresaModel(nome_fantasia=dados.nome_fantasia)
+        db.add(nova_empresa)
+        db.commit()
+        db.refresh(nova_empresa)
+
+        # 3. Cria o Usuário Administrador vinculado a essa nova empresa
+        novo_admin = models.UsuarioModel(
+            nome=dados.nome_responsavel,
+            email=dados.email,
+            senha_hash=dados.senha,  # Senha direta conforme seu padrão atual
+            perfil="admin",
+            empresa_id=nova_empresa.id
+        )
+        db.add(novo_admin)
+        db.commit()
+
+        return {"mensagem": "Empresa e usuário criados com sucesso!", "empresa_id": nova_empresa.id}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erro ao registrar empresa: {str(e)}")
+
 @app.patch("/os/{os_id}/status")
 def alterar_status_os(
     os_id: int,

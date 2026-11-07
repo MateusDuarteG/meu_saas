@@ -5,6 +5,12 @@ from datetime import datetime
 # ==========================================
 # SCHEMAS DE USUÁRIO E EMPRESA
 # ==========================================
+class EmpresaCadastroCreate(BaseModel):
+    nome_fantasia: str
+    nome_responsavel: str
+    email: EmailStr
+    senha: str
+    
 class EmpresaCreate(BaseModel):
     nome_fantasia: str
     cnpj: str
