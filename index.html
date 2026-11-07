@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SaaS OS & Cobrança - Painel de Controle</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5',
+              700: '#4338ca', 800: '#3730a3', 900: '#312e81', dark: '#0f172a'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts & Lucide Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .kanban-col { min-height: 520px; }
+    .kanban-card.dragging { opacity: 0.4; transform: scale(0.98); }
+    .kanban-col.drag-over { background-color: rgba(99, 102, 241, 0.08); border-color: #6366f1; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased relative">
+
+  <!-- TOAST NOTIFICATIONS -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- AUTH MODAL (LOGIN DO LOJISTA) -->
+  <div id="auth-modal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-8 relative">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+          <i data-lucide="wrench" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-white">SaaS OS Pro</h2>
+          <p class="text-xs text-slate-400">Gestão de Ordens de Serviço & Cobrança</p>
+        </div>
+      </div>
+
+      <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">E-mail</label>
+          <input type="email" id="login-email" required placeholder="mateus@assistencia.com" value="mateus@assistencia.com" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Senha</label>
+          <input type="password" id="login-password" required placeholder="••••••••" value="123456" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-xl text-sm transition shadow-lg shadow-indigo-600/30">
+          Acessar Painel
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN WRAPPER -->
+  <div class="flex h-screen overflow-hidden">
+    
+    <!-- SIDEBAR (Escondida automaticamente se for acesso do cliente) -->
+    <aside id="sidebar-loja" class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0">
+      <div>
+        <div class="p-5 flex items-center justify-between border-b border-slate-800/60">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+              <i data-lucide="wrench" class="w-5 h-5"></i>
+            </div>
+            <span class="font-bold text-lg text-white">OS<span class="text-indigo-400">Pro</span></span>
+          </div>
+          <span class="px-2 py-0.5 text-[10px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-md">
+            SaaS
+          </span>
+        </div>
+
+        <nav class="p-3 space-y-1">
+          <button onclick="switchView('kanban')" id="nav-kanban" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-indigo-400 bg-indigo-600/10 border border-indigo-500/20">
+            <i data-lucide="kanban" class="w-4 h-4"></i>
+            <span>Kanban de OS</span>
+          </button>
+          <button onclick="switchView('clientes')" id="nav-clientes" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition">
+            <i data-lucide="users" class="w-4 h-4"></i>
+            <span>Clientes</span>
+          </button>
+          <button onclick="switchView('portal')" id="nav-portal" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition">
+            <i data-lucide="external-link" class="w-4 h-4"></i>
+            <span>Portal do Cliente</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="p-3 border-t border-slate-800/60">
+        <div class="flex items-center justify-between p-2 rounded-xl bg-slate-800/40 border border-slate-800">
+          <div class="flex items-center gap-3 overflow-hidden">
+            <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0">
+              M
+            </div>
+            <div class="truncate">
+              <p class="text-xs font-semibold text-white truncate" id="user-name">Mateus Duarte</p>
+              <p class="text-[10px] text-slate-400 capitalize truncate">Assistência Tech</p>
+            </div>
+          </div>
+          <button onclick="logout()" title="Sair" class="text-slate-400 hover:text-rose-400 p-1.5 transition">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CONTENT AREA -->
+    <main class="flex-1 flex flex-col overflow-y-auto bg-slate-950">
+      
+      <!-- HEADER (Escondido se for acesso do cliente) -->
+      <header id="header-loja" class="h-16 border-b border-slate-800 bg-slate-900/60 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-20">
+        <h1 id="page-title" class="text-lg font-bold text-white">Kanban de Ordens de Serviço</h1>
+        
+        <div class="flex items-center gap-3">
+          <button onclick="openModalOS()" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            Nova Ordem de Serviço
+          </button>
+        </div>
+      </header>
+
+      <!-- VIEW: KANBAN -->
+      <section id="view-kanban" class="p-6 flex-1 flex flex-col">
+        <p class="text-xs text-slate-400 mb-4">Arraste os cards para atualizar o status em tempo real no banco de dados.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 flex-1">
+          <!-- ABERTO -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col">
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+              <span class="text-xs font-bold text-slate-300 flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-400"></span> Aberto
+              </span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-semibold" id="count-ABERTO">0</span>
+            </div>
+            <div class="kanban-col flex-1 space-y-3" data-status="ABERTO" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)"></div>
+          </div>
+
+          <!-- ORCAMENTO -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col">
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+              <span class="text-xs font-bold text-slate-300 flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> Orçamento
+              </span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-semibold" id="count-ORCAMENTO">0</span>
+            </div>
+            <div class="kanban-col flex-1 space-y-3" data-status="ORCAMENTO" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)"></div>
+          </div>
+
+          <!-- EM_EXECUCAO -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col">
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+              <span class="text-xs font-bold text-slate-300 flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span> Em Execução
+              </span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-semibold" id="count-EM_EXECUCAO">0</span>
+            </div>
+            <div class="kanban-col flex-1 space-y-3" data-status="EM_EXECUCAO" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)"></div>
+          </div>
+
+          <!-- AGUARDANDO_PAGAMENTO -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col">
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+              <span class="text-xs font-bold text-slate-300 flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Pagamento / PIX
+              </span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-semibold" id="count-AGUARDANDO_PAGAMENTO">0</span>
+            </div>
+            <div class="kanban-col flex-1 space-y-3" data-status="AGUARDANDO_PAGAMENTO" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)"></div>
+          </div>
+
+          <!-- CONCLUIDO -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col">
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+              <span class="text-xs font-bold text-slate-300 flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-teal-400"></span> Concluído
+              </span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-semibold" id="count-CONCLUIDO">0</span>
+            </div>
+            <div class="kanban-col flex-1 space-y-3" data-status="CONCLUIDO" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: CLIENTES -->
+      <section id="view-clientes" class="p-6 space-y-4 hidden">
+        <div class="flex items-center justify-between">
+          <h3 class="text-base font-bold text-white">Clientes Cadastrados</h3>
+          <button onclick="openModalCliente()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded-xl">
+            + Cadastrar Cliente
+          </button>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-800/50 text-xs text-slate-400 uppercase border-b border-slate-800">
+              <tr>
+                <th class="px-6 py-3 font-semibold">Nome</th>
+                <th class="px-6 py-3 font-semibold">Telefone / WhatsApp</th>
+                <th class="px-6 py-3 font-semibold">CPF/CNPJ</th>
+                <th class="px-6 py-3 font-semibold text-right">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="table-clientes-body" class="divide-y divide-slate-800/60"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- VIEW: PORTAL DO CLIENTE (Área Exclusiva do Cliente Final) -->
+      <section id="view-portal" class="p-6 max-w-2xl hidden mx-auto mt-10">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 space-y-6 shadow-2xl">
+          <div class="text-center space-y-2">
+            <div class="w-12 h-12 bg-indigo-600/20 text-indigo-400 rounded-2xl mx-auto flex items-center justify-center border border-indigo-500/30">
+              <i data-lucide="shield-check" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white">Acompanhamento da Ordem de Serviço</h3>
+            <p class="text-xs text-slate-400">Consulte o andamento do seu equipamento em tempo real.</p>
+          </div>
+
+          <div class="flex gap-2">
+            <input type="text" id="input-codigo-os" placeholder="Ex: OS-1794087817" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 font-mono uppercase" />
+            <button onclick="consultarOSPortal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-6 py-3 rounded-xl transition">
+              Consultar
+            </button>
+          </div>
+
+          <div id="resultado-portal" class="mt-4 p-5 rounded-xl bg-slate-950 border border-slate-800 hidden space-y-4">
+            <div class="flex justify-between items-start border-b border-slate-800 pb-3">
+              <div>
+                <span class="text-xs font-mono text-indigo-400 font-bold" id="portal-codigo">OS-0000</span>
+                <h4 class="text-base font-bold text-white mt-1" id="portal-equipamento">Equipamento</h4>
+              </div>
+              <span class="px-3 py-1 text-xs font-bold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" id="portal-status">EM_EXECUCAO</span>
+            </div>
+
+            <div class="text-xs space-y-2 text-slate-300">
+              <p><span class="text-slate-500">Valor Estimado:</span> <strong class="text-emerald-400 text-sm" id="portal-valor">R$ 0,00</strong></p>
+              <p><span class="text-slate-500">Laudo Técnico / Observações:</span> <span id="portal-laudo" class="text-white block mt-1 bg-slate-900 p-2.5 rounded-lg border border-slate-800">Nenhum registrado</span></p>
+              <p class="pt-2 border-t border-slate-900"><span class="text-slate-500">Assistência Responsável:</span> <span id="portal-empresa" class="font-semibold text-white">Assistência Tech</span></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL DE LAUDO TÉCNICO -->
+  <div id="modal-laudo" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-white">Adicionar Laudo Técnico</h3>
+        <button onclick="fecharModalLaudo()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="space-y-3">
+        <p class="text-xs text-slate-400">Informe o laudo técnico do reparo realizado para concluir a OS:</p>
+        <textarea id="input-laudo-texto" rows="3" placeholder="Ex: Substituição do componente e testes realizados com sucesso." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"></textarea>
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
+          <button type="button" onclick="fecharModalLaudo()" class="px-4 py-2 text-xs text-slate-400 hover:text-white">Cancelar</button>
+          <button onclick="confirmarMudancaStatusComLaudo()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-4 py-2 rounded-xl">Confirmar e Concluir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL OS -->
+  <div id="modal-os" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-white">Nova Ordem de Serviço</h3>
+        <button onclick="closeModalOS()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="handleSaveOS(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Cliente *</label>
+          <select id="os-cliente-id" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"></select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Equipamento / Aparelho *</label>
+          <input type="text" id="os-equipamento" required placeholder="Ex: Notebook Dell Vostro 5470" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Defeito Relatado *</label>
+          <textarea id="os-defeito" required rows="2" placeholder="Ex: Não liga a tela e esquenta muito" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Valor Estimado (R$)</label>
+          <input type="number" step="0.01" id="os-valor" placeholder="180.00" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
+          <button type="button" onclick="closeModalOS()" class="px-4 py-2 text-xs text-slate-400 hover:text-white">Cancelar</button>
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded-xl">Criar OS</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL CLIENTE -->
+  <div id="modal-cliente" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-white">Cadastrar Cliente</h3>
+        <button onclick="closeModalCliente()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="handleSaveCliente(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Nome Completo *</label>
+          <input type="text" id="cli-nome" required placeholder="Ex: Mateus Duarte" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">WhatsApp / Telefone *</label>
+          <input type="text" id="cli-telefone" required placeholder="34999990000" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">CPF / CNPJ</label>
+          <input type="text" id="cli-cpf" placeholder="000.000.000-00" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
+          <button type="button" onclick="closeModalCliente()" class="px-4 py-2 text-xs text-slate-400 hover:text-white">Cancelar</button>
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded-xl">Salvar Cliente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT -->
+  <script>
+    let state = {
+      apiUrl: 'http://127.0.0.1:8000',
+      token: localStorage.getItem('saas_os_token') || null,
+      clientes: [],
+      ordensServico: [],
+      draggedCardId: null
+    };
+
+    let pendingStatusChange = { osId: null, novoStatus: null };
+
+    window.onload = () => {
+      lucide.createIcons();
+
+      // Verifica se o cliente abriu a página através de um link com parâmetro de OS (ex: ?os=OS-12345)
+      const urlParams = new URLSearchParams(window.location.search);
+      const osParam = urlParams.get('os');
+
+      if (osParam) {
+        // MODO CLIENTE FINAL: Esconde a barra lateral e o menu administrativo do lojista
+        document.getElementById('sidebar-loja').style.display = 'none';
+        document.getElementById('header-loja').style.display = 'none';
+        document.getElementById('auth-modal').classList.add('hidden');
+        
+        // Abre direto a aba do portal e preenche o código da OS
+        switchView('portal');
+        document.getElementById('input-codigo-os').value = osParam;
+        consultarOSPortal();
+        return;
+      }
+
+      // MODO LOJISTA NORMAL: Exige autenticação
+      if (!state.token) {
+        document.getElementById('auth-modal').classList.remove('hidden');
+      } else {
+        document.getElementById('auth-modal').classList.add('hidden');
+        carregarDadosAPI();
+      }
+    };
+
+    function formatarMoeda(valor) {
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colors = {
+        success: 'bg-emerald-600 text-white border-emerald-500',
+        error: 'bg-rose-600 text-white border-rose-500',
+        info: 'bg-indigo-600 text-white border-indigo-500'
+      };
+      toast.className = `flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg border text-xs font-semibold ${colors[type] || colors.info}`;
+      toast.innerHTML = `<span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3500);
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const senha = document.getElementById('login-password').value;
+
+      try {
+        const formData = new URLSearchParams();
+        formData.append('username', email);
+        formData.append('password', senha);
+
+        const res = await fetch(`${state.apiUrl}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formData
+        });
+
+        if (!res.ok) {
+          showToast('E-mail ou senha inválidos!', 'error');
+          return;
+        }
+
+        const data = await res.json();
+        state.token = data.access_token;
+        localStorage.setItem('saas_os_token', state.token);
+        
+        document.getElementById('auth-modal').classList.add('hidden');
+        showToast('Bem-vindo ao SaaS OS Pro!', 'success');
+        carregarDadosAPI();
+      } catch (err) {
+        showToast('Erro de conexão com o servidor de autenticação', 'error');
+      }
+    }
+
+    function logout() {
+      state.token = null;
+      localStorage.removeItem('saas_os_token');
+      document.getElementById('auth-modal').classList.remove('hidden');
+      showToast('Sessão encerrada com sucesso.', 'info');
+    }
+
+    function switchView(viewName) {
+      ['kanban', 'clientes', 'portal'].forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        if (el) el.classList.add('hidden');
+        const nav = document.getElementById(`nav-${v}`);
+        if (nav) nav.className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition";
+      });
+
+      const targetView = document.getElementById(`view-${viewName}`);
+      if (targetView) targetView.classList.remove('hidden');
+      const targetNav = document.getElementById(`nav-${viewName}`);
+      if (targetNav) targetNav.className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-indigo-400 bg-indigo-600/10 border border-indigo-500/20";
+    }
+
+    async function carregarDadosAPI() {
+      if (!state.token) return;
+      try {
+        const headers = { 'Authorization': `Bearer ${state.token}` };
+        
+        const resCli = await fetch(`${state.apiUrl}/clientes/`, { headers });
+        if (resCli.ok) state.clientes = await resCli.json();
+
+        const resOS = await fetch(`${state.apiUrl}/os/`, { headers });
+        if (resOS.ok) state.ordensServico = await resOS.json();
+
+        renderAll();
+      } catch (err) {
+        showToast('Erro ao sincronizar com a API FastAPI', 'error');
+      }
+    }
+
+    function renderAll() {
+      renderKanban();
+      renderClientes();
+    }
+
+    function renderKanban() {
+      const statusList = ['ABERTO', 'ORCAMENTO', 'EM_EXECUCAO', 'AGUARDANDO_PAGAMENTO', 'CONCLUIDO'];
+      
+      statusList.forEach(st => {
+        const col = document.querySelector(`.kanban-col[data-status="${st}"]`);
+        if (!col) return;
+        const items = state.ordensServico.filter(os => os.status === st);
+        const badge = document.getElementById(`count-${st}`);
+        if (badge) badge.innerText = items.length;
+
+        col.innerHTML = items.map(os => {
+          const cli = state.clientes.find(c => c.id === os.cliente_id);
+          const telefone = cli ? cli.telefone : '';
+          
+          let botaoPixHtml = '';
+          if (os.status === 'AGUARDANDO_PAGAMENTO') {
+            botaoPixHtml = `<button onclick="cobrarPixWhatsApp('${telefone}', '${os.codigo_os}', ${os.valor})" class="text-[11px] text-amber-400 hover:underline flex items-center gap-1 font-bold">
+              <i data-lucide="qr-code" class="w-3.5 h-3.5"></i> PIX
+            </button>`;
+          }
+
+          return `
+            <div class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-4 rounded-xl shadow-md cursor-grab active:cursor-grabbing transition"
+                 draggable="true" ondragstart="handleDragStart(event, ${os.id})">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-indigo-400">${os.codigo_os}</span>
+                <span class="text-xs font-bold text-emerald-400">${formatarMoeda(os.valor)}</span>
+              </div>
+              <h4 class="text-sm font-bold text-white mb-1">${os.equipamento}</h4>
+              <p class="text-xs text-slate-400 mb-3 truncate">Cliente: ${cli ? cli.nome : 'N/A'}</p>
+              
+              <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+                <button onclick="enviarWhatsApp('${telefone}', '${os.codigo_os}', '${os.status}', ${os.valor})" class="text-[11px] text-emerald-400 hover:underline flex items-center gap-1 font-medium">
+                  <i data-lucide="message-square" class="w-3.5 h-3.5"></i> WhatsApp
+                </button>
+                ${botaoPixHtml}
+                <span class="text-[10px] text-slate-500 uppercase">${os.status}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      });
+      lucide.createIcons();
+    }
+
+    function handleDragStart(e, osId) {
+      state.draggedCardId = osId;
+    }
+
+    function handleDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+    function handleDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+
+    async function handleDrop(e) {
+      e.preventDefault();
+      const col = e.currentTarget;
+      col.classList.remove('drag-over');
+      const novoStatus = col.getAttribute('data-status');
+      const osId = state.draggedCardId;
+
+      if (novoStatus === 'CONCLUIDO') {
+        pendingStatusChange = { osId, novoStatus };
+        document.getElementById('modal-laudo').classList.remove('hidden');
+        return;
+      }
+
+      await executarAlteracaoStatus(osId, novoStatus, null);
+    }
+
+    function fecharModalLaudo() {
+      document.getElementById('modal-laudo').classList.add('hidden');
+      pendingStatusChange = { osId: null, novoStatus: null };
+    }
+
+    async function confirmarMudancaStatusComLaudo() {
+      const laudo = document.getElementById('input-laudo-texto').value.trim();
+      if (!laudo) {
+        showToast('O laudo técnico é obrigatório para concluir a OS.', 'error');
+        return;
+      }
+      
+      fecharModalLaudo();
+      await executarAlteracaoStatus(pendingStatusChange.osId, pendingStatusChange.novoStatus, laudo);
+    }
+
+    async function executarAlteracaoStatus(osId, novoStatus, laudoTecnico) {
+      try {
+        const payload = { novo_status: novoStatus };
+        if (laudoTecnico) payload.laudo_tecnico = laudoTecnico;
+
+        const res = await fetch(`${state.apiUrl}/os/${osId}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${state.token}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          showToast(errData.detail || 'Transição de status inválida!', 'error');
+          return;
+        }
+
+        showToast(`Status atualizado para ${novoStatus}`, 'success');
+        await carregarDadosAPI();
+      } catch (err) {
+        showToast('Erro ao atualizar status na API', 'error');
+      }
+    }
+
+    // Mensagem WhatsApp com URL direta e limpa contendo o parâmetro da OS
+    function enviarWhatsApp(telefone, codigoOS, status, valor) {
+      const valorFormatado = formatarMoeda(valor);
+      
+      // URL base do seu portal local (ou IP da rede se quiser testar em outro aparelho)
+      const urlPortal = `http://127.0.0.1:5500/index.html?os=${codigoOS}`;
+      
+      // Deixamos a URL isolada no final, com linhas limpas para o WhatsApp renderizar o link azul inteiro
+      const texto = `Olá! Sua Ordem de Serviço *${codigoOS}* foi atualizada para o status: *${status}*.\n\nValor estimado: ${valorFormatado}\n\nAcompanhe o andamento em tempo real pelo link abaixo:\n${urlPortal}`;
+      
+      const msg = encodeURIComponent(texto);
+      window.open(`https://api.whatsapp.com/send?phone=55${telefone}&text=${msg}`, '_blank');
+    }
+
+    function cobrarPixWhatsApp(telefone, codigoOS, valor) {
+      const valorFormatado = formatarMoeda(valor);
+      const chavePix = "12.345.678/0001-99 (CNPJ)";
+      const urlPortal = `http://127.0.0.1:5500/index.html?os=${codigoOS}`;
+      
+      const texto = `Olá! Sua Ordem de Serviço *${codigoOS}* está pronta. O valor total é de *${valorFormatado}*. Pague via PIX usando nossa chave CNPJ: ${chavePix}.\n\nAcesse os detalhes e laudo técnico pelo link:\n${urlPortal}`;
+      
+      const msg = encodeURIComponent(texto);
+      window.open(`https://api.whatsapp.com/send?phone=55${telefone}&text=${msg}`, '_blank');
+    }
+
+    function renderClientes() {
+      const tbody = document.getElementById('table-clientes-body');
+      if (!tbody) return;
+      tbody.innerHTML = state.clientes.map(c => `
+        <tr class="hover:bg-slate-800/30">
+          <td class="px-6 py-3 font-semibold text-white">${c.nome}</td>
+          <td class="px-6 py-3 text-slate-300">${c.telefone}</td>
+          <td class="px-6 py-3 text-slate-400">${c.cpf_cnpj || 'N/A'}</td>
+          <td class="px-6 py-3 text-right">
+            <button onclick="openModalOS(${c.id})" class="text-xs text-indigo-400 hover:underline">+ Nova OS</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openModalOS(preClienteId = null) {
+      const select = document.getElementById('os-cliente-id');
+      select.innerHTML = state.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+      if (preClienteId) select.value = preClienteId;
+      document.getElementById('modal-os').classList.remove('hidden');
+    }
+    function closeModalOS() { document.getElementById('modal-os').classList.add('hidden'); }
+
+    async function handleSaveOS(e) {
+      e.preventDefault();
+      const cliente_id = parseInt(document.getElementById('os-cliente-id').value);
+      const equipamento = document.getElementById('os-equipamento').value;
+      const defeito_relatado = document.getElementById('os-defeito').value;
+      const valor = parseFloat(document.getElementById('os-valor').value || 0);
+
+      try {
+        const res = await fetch(`${state.apiUrl}/os/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${state.token}`
+          },
+          body: JSON.stringify({ cliente_id, equipamento, defeito_relatado, valor })
+        });
+
+        if (!res.ok) {
+          showToast('Erro ao criar Ordem de Serviço', 'error');
+          return;
+        }
+
+        showToast('Nova Ordem de Serviço criada com sucesso!', 'success');
+        closeModalOS();
+        await carregarDadosAPI();
+      } catch (err) {
+        showToast('Erro de conexão com o servidor', 'error');
+      }
+    }
+
+    function openModalCliente() { document.getElementById('modal-cliente').classList.remove('hidden'); }
+    function closeModalCliente() { document.getElementById('modal-cliente').classList.add('hidden'); }
+
+    async function handleSaveCliente(e) {
+      e.preventDefault();
+      const nome = document.getElementById('cli-nome').value;
+      const telefone = document.getElementById('cli-telefone').value;
+      const cpf_cnpj = document.getElementById('cli-cpf').value;
+
+      try {
+        const res = await fetch(`${state.apiUrl}/clientes/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${state.token}`
+          },
+          body: JSON.stringify({ nome, telefone, cpf_cnpj })
+        });
+
+        if (!res.ok) {
+          showToast('Erro ao cadastrar cliente', 'error');
+          return;
+        }
+
+        showToast('Cliente cadastrado com sucesso!', 'success');
+        closeModalCliente();
+        await carregarDadosAPI();
+      } catch (err) {
+        showToast('Erro de conexão com o servidor', 'error');
+      }
+    }
+
+    async function consultarOSPortal() {
+      const cod = document.getElementById('input-codigo-os').value.trim().toUpperCase();
+      const box = document.getElementById('resultado-portal');
+
+      if (!cod) return;
+
+      try {
+        const res = await fetch(`${state.apiUrl}/portal-cliente/${cod}`);
+        if (!res.ok) {
+          showToast('Nenhuma OS encontrada com esse código.', 'error');
+          box.classList.add('hidden');
+          return;
+        }
+
+        const data = await res.json();
+        document.getElementById('portal-codigo').innerText = data.codigo_os;
+        document.getElementById('portal-equipamento').innerText = data.equipamento;
+        document.getElementById('portal-status').innerText = data.status;
+        document.getElementById('portal-valor').innerText = formatarMoeda(data.valor);
+        document.getElementById('portal-laudo').innerText = data.laudo_tecnico || 'Nenhum registrado até o momento.';
+        document.getElementById('portal-empresa').innerText = data.empresa;
+        box.classList.remove('hidden');
+      } catch (err) {
+        showToast('Erro ao consultar portal', 'error');
+      }
+    }
+  </script>
+</body>
+</html>
