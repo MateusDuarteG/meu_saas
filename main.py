@@ -3,6 +3,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import models, schemas, state_machine, auth
+import os
 from fastapi.security import OAuth2PasswordRequestForm
 from database import engine, get_db
 
@@ -157,3 +158,8 @@ def listar_clientes(
         models.ClienteModel.empresa_id == usuario_atual.empresa_id
     ).all()
     return clientes
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.main.run("main:app", host="0.0.0.0", port=port)

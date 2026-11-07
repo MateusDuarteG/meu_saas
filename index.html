@@ -590,14 +590,15 @@
     }
 
     // Mensagem WhatsApp com URL direta e limpa contendo o parâmetro da OS
+    // Mensagem WhatsApp com URL dinâmica da Vercel
     function enviarWhatsApp(telefone, codigoOS, status, valor) {
       const valorFormatado = formatarMoeda(valor);
       
-      // Usa a URL atual de onde o site estiver rodando (Vercel ou local)
+      // Pega a URL atual do site (seja Vercel ou local)
       const baseUrl = window.location.origin + window.location.pathname;
       const urlPortal = `${baseUrl}?os=${codigoOS}`;
       
-      const texto = `Olá! Sua Ordem de Serviço *${codigoOS}* foi atualizada para o status: *${status}*.\n\nValor estimado: ${valorFormatado}\n\nAcompanhe o andamento pelo link:\n${urlPortal}`;
+      const texto = `Olá! Sua Ordem de Serviço *${codigoOS}* foi atualizada para o status: *${status}*.\n\nValor estimado: ${valorFormatado}\n\nAcompanhe o andamento em tempo real pelo link:\n${urlPortal}`;
       
       const msg = encodeURIComponent(texto);
       window.open(`https://api.whatsapp.com/send?phone=55${telefone}&text=${msg}`, '_blank');
@@ -609,18 +610,7 @@
       const baseUrl = window.location.origin + window.location.pathname;
       const urlPortal = `${baseUrl}?os=${codigoOS}`;
       
-      const texto = `Olá! Sua Ordem de Serviço *${codigoOS}* está pronta. Valor total: *${valorFormatado}*. Pague via PIX usando nossa chave CNPJ: ${chavePix}.\n\nAcesse o laudo técnico pelo link:\n${urlPortal}`;
-      
-      const msg = encodeURIComponent(texto);
-      window.open(`https://api.whatsapp.com/send?phone=55${telefone}&text=${msg}`, '_blank');
-    }
-
-    function cobrarPixWhatsApp(telefone, codigoOS, valor) {
-      const valorFormatado = formatarMoeda(valor);
-      const chavePix = "12.345.678/0001-99 (CNPJ)";
-      const urlPortal = `http://127.0.0.1:5500/index.html?os=${codigoOS}`;
-      
-      const texto = `Olá! Sua Ordem de Serviço *${codigoOS}* está pronta. O valor total é de *${valorFormatado}*. Pague via PIX usando nossa chave CNPJ: ${chavePix}.\n\nAcesse os detalhes e laudo técnico pelo link:\n${urlPortal}`;
+      const texto = `Olá! Sua Ordem de Serviço *${codigoOS}* está pronta. Valor total: *${valorFormatado}*. Pague via PIX usando nossa chave CNPJ: ${chavePix}.\n\nAcesse os detalhes e o laudo técnico pelo link:\n${urlPortal}`;
       
       const msg = encodeURIComponent(texto);
       window.open(`https://api.whatsapp.com/send?phone=55${telefone}&text=${msg}`, '_blank');
