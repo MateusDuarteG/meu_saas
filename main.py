@@ -22,14 +22,14 @@ app.add_middleware(
 def criar_admin_inicial():
     db = next(get_db())
     try:
-        # 1. Garante que a empresa com id=1 existe primeiro
+        # 1. Garante que a empresa com id=1 existe (criando apenas com o ID)
         empresa_padrao = db.query(models.EmpresaModel).filter(models.EmpresaModel.id == 1).first()
         if not empresa_padrao:
-            nova_empresa = models.EmpresaModel(id=1, nome="Assistência Técnica Padrão")
+            nova_empresa = models.EmpresaModel(id=1)
             db.add(nova_empresa)
             db.commit()
 
-        # 2. Agora cria ou atualiza o usuário admin vinculado à empresa 1
+        # 2. Cria ou atualiza o usuário admin vinculado à empresa 1
         admin_existente = db.query(models.UsuarioModel).filter(models.UsuarioModel.email == "mateus@assistencia.com").first()
         if not admin_existente:
             novo_admin = models.UsuarioModel(
@@ -54,7 +54,7 @@ def criar_admin_forcado():
     try:
         empresa_padrao = db.query(models.EmpresaModel).filter(models.EmpresaModel.id == 1).first()
         if not empresa_padrao:
-            nova_empresa = models.EmpresaModel(id=1, nome="Assistência Técnica Padrão")
+            nova_empresa = models.EmpresaModel(id=1)
             db.add(nova_empresa)
             db.commit()
 
