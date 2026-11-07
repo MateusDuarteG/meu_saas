@@ -22,6 +22,14 @@ app.add_middleware(
 def criar_admin_inicial():
     db = next(get_db())
     try:
+        # 1. Garante que a empresa com id=1 existe primeiro
+        empresa_padrao = db.query(models.EmpresaModel).filter(models.EmpresaModel.id == 1).first()
+        if not empresa_padrao:
+            nova_empresa = models.EmpresaModel(id=1, nome="Assistência Técnica Padrão")
+            db.add(nova_empresa)
+            db.commit()
+
+        # 2. Agora cria ou atualiza o usuário admin vinculado à empresa 1
         admin_existente = db.query(models.UsuarioModel).filter(models.UsuarioModel.email == "mateus@assistencia.com").first()
         if not admin_existente:
             novo_admin = models.UsuarioModel(
@@ -34,28 +42,31 @@ def criar_admin_inicial():
             db.add(novo_admin)
             db.commit()
     except Exception as e:
-        print("Erro ao criar admin:", e)
+        print("Erro ao criar admin/empresa:", e)
     finally:
         db.close()
 
-# Executa a criação do admin ao iniciar
 criar_admin_inicial()
 
 @app.get("/criar-admin-forçado")
 def criar_admin_forcado():
     db = next(get_db())
     try:
-        # Verifica se já existe
+        empresa_padrao = db.query(models.EmpresaModel).filter(models.EmpresaModel.id == 1).first()
+        if not empresa_padrao:
+            nova_empresa = models.EmpresaModel(id=1, nome="Assistência Técnica Padrão")
+            db.add(nova_empresa)
+            db.commit()
+
         admin = db.query(models.UsuarioModel).filter(models.UsuarioModel.email == "mateus@assistencia.com").first()
         if admin:
-            # Atualiza a senha para garantir que seja '123456'
             admin.senha_hash = "123456"
             admin.nome = "Mateus Duarte"
             admin.perfil = "admin"
+            admin.empresa_id = 1
             db.commit()
-            return {"mensagem": "Usuário admin atualizado com sucesso!"}
+            return {"mensagem": "Empresa e usuário admin atualizados com sucesso!"}
         
-        # Se não existir, cria do zero
         novo_admin = models.UsuarioModel(
             nome="Mateus Duarte",
             email="mateus@assistencia.com",
@@ -65,12 +76,12 @@ def criar_admin_forcado():
         )
         db.add(novo_admin)
         db.commit()
-        return {"mensagem": "Usuário admin criado com sucesso no banco da nuvem!"}
+        return {"mensagem": "Empresa e usuário admin criados com sucesso no banco da nuvem!"}
     except Exception as e:
         return {"erro": str(e)}
     finally:
         db.close()
-        
+
 @app.post("/login")
 def login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     usuario = db.query(models.UsuarioModel).filter(models.UsuarioModel.email == form_data.username).first()
