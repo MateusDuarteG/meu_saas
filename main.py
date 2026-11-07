@@ -25,13 +25,15 @@ def criar_usuario_admin_padrao():
     admin_existente = db.query(models.UsuarioModel).filter(models.UsuarioModel.email == "mateus@assistencia.com").first()
     if not admin_existente:
         novo_admin = models.UsuarioModel(
+            nome="Mateus Duarte",
             email="mateus@assistencia.com",
-            senha_hash="123456",  # Senha padrão que você usa no login
+            senha_hash="123456",  # Coloque o hash ou senha que sua aplicação utiliza
+            perfil="admin",
             empresa_id=1
         )
         db.add(novo_admin)
         db.commit()
-        
+
 @app.post("/login")
 def login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     # Busca o usuário pelo e-mail informado no campo 'username' do form
