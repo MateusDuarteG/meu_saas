@@ -593,11 +593,23 @@
     function enviarWhatsApp(telefone, codigoOS, status, valor) {
       const valorFormatado = formatarMoeda(valor);
       
-      // URL base do seu portal local (ou IP da rede se quiser testar em outro aparelho)
-      const urlPortal = `http://127.0.0.1:5500/index.html?os=${codigoOS}`;
+      // Usa a URL atual de onde o site estiver rodando (Vercel ou local)
+      const baseUrl = window.location.origin + window.location.pathname;
+      const urlPortal = `${baseUrl}?os=${codigoOS}`;
       
-      // Deixamos a URL isolada no final, com linhas limpas para o WhatsApp renderizar o link azul inteiro
-      const texto = `Olá! Sua Ordem de Serviço *${codigoOS}* foi atualizada para o status: *${status}*.\n\nValor estimado: ${valorFormatado}\n\nAcompanhe o andamento em tempo real pelo link abaixo:\n${urlPortal}`;
+      const texto = `Olá! Sua Ordem de Serviço *${codigoOS}* foi atualizada para o status: *${status}*.\n\nValor estimado: ${valorFormatado}\n\nAcompanhe o andamento pelo link:\n${urlPortal}`;
+      
+      const msg = encodeURIComponent(texto);
+      window.open(`https://api.whatsapp.com/send?phone=55${telefone}&text=${msg}`, '_blank');
+    }
+
+    function cobrarPixWhatsApp(telefone, codigoOS, valor) {
+      const valorFormatado = formatarMoeda(valor);
+      const chavePix = "12.345.678/0001-99 (CNPJ)";
+      const baseUrl = window.location.origin + window.location.pathname;
+      const urlPortal = `${baseUrl}?os=${codigoOS}`;
+      
+      const texto = `Olá! Sua Ordem de Serviço *${codigoOS}* está pronta. Valor total: *${valorFormatado}*. Pague via PIX usando nossa chave CNPJ: ${chavePix}.\n\nAcesse o laudo técnico pelo link:\n${urlPortal}`;
       
       const msg = encodeURIComponent(texto);
       window.open(`https://api.whatsapp.com/send?phone=55${telefone}&text=${msg}`, '_blank');
