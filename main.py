@@ -41,6 +41,36 @@ def criar_admin_inicial():
 # Executa a criação do admin ao iniciar
 criar_admin_inicial()
 
+@app.get("/criar-admin-forçado")
+def criar_admin_forcado():
+    db = next(get_db())
+    try:
+        # Verifica se já existe
+        admin = db.query(models.UsuarioModel).filter(models.UsuarioModel.email == "mateus@assistencia.com").first()
+        if admin:
+            # Atualiza a senha para garantir que seja '123456'
+            admin.senha_hash = "123456"
+            admin.nome = "Mateus Duarte"
+            admin.perfil = "admin"
+            db.commit()
+            return {"mensagem": "Usuário admin atualizado com sucesso!"}
+        
+        # Se não existir, cria do zero
+        novo_admin = models.UsuarioModel(
+            nome="Mateus Duarte",
+            email="mateus@assistencia.com",
+            senha_hash="123456",
+            perfil="admin",
+            empresa_id=1
+        )
+        db.add(novo_admin)
+        db.commit()
+        return {"mensagem": "Usuário admin criado com sucesso no banco da nuvem!"}
+    except Exception as e:
+        return {"erro": str(e)}
+    finally:
+        db.close()
+        
 @app.post("/login")
 def login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     usuario = db.query(models.UsuarioModel).filter(models.UsuarioModel.email == form_data.username).first()
